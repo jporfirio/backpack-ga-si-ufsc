@@ -1,16 +1,25 @@
 function run(capacity, size, deviation, generations) {
-	const population = generate(items, capacity, size);
-	const breedingChance = 0.6;
-	const mutationChance = 0.01;
+	const population = generate(generatItems(20), capacity, size);
+	const breedingChance = 0.8;
+	const mutationChance = 0.001;
 	console.log(population);
-	let generation = 0;
-	//while (!test(population, capacity, deviation)) {
 	for (let i = 0; i < generations && !test(population, capacity, deviation); i++) {
 		const candidates = select(population, 2);
 		breed(candidates, breedingChance, capacity);
-		mutate(population);
+		mutate(population, mutationChance, 15);
 		evaluate(population);
 	}
+}
+
+function generatItems(quantity) {
+	let items = [];
+	for (let i = 0; i < quantity; i++) {
+		items.push({
+			weight: Math.round(Math.random() * 50) + 1,
+			value: Math.round(Math.random() * 50) + 1
+		})
+	}
+	return items;
 }
 
 function generate(items, capacity, size) {
@@ -39,12 +48,15 @@ function generate(items, capacity, size) {
 }
 
 function evaluate(population) {
-	population.avgFitness = 0;
+	let avgFitness = 0;
 	population.forEach(individual => {
 		individual = evaluateIndividual(individual);
-		population.avgFitness += individual.fitness / population.length;
+		avgFitness += individual.fitness / population.length;
 	});
-	console.log('Average fitness: ', population.avgFitness);
+	if (avgFitness !== population.avgFitness) {
+		population.avgFitness = avgFitness;
+		console.log('Average fitness: ', population.avgFitness);
+	}
 	return population;
 }
 
@@ -60,19 +72,26 @@ function evaluateIndividual(individual) {
 	return individual;
 }
 
-function test(population, capacity, deviation) {
-	const mean = population.reduce((mean, individual) => {
-		return mean += individual.fitness / population.length;
-	}, 0);
-	const variance = population.map(individual => Math.pow(individual.fitness - mean, 2))
-		.reduce((mean, value) => mean += value / population.length, 0);
-	deviation = mean * deviation;
-	if (Math.sqrt(variance) < deviation) {
+function test(population, capacity, desiredDeviation) {
+	const mean = populationMean(population);
+	const stdDeviation = populationDeviation(population, mean);
+	const proportionalDeviation = stdDeviation / mean;
+	if (proportionalDeviation < desiredDeviation) {
 		population.sort((a, b) => b.fitness - a.fitness);
 		console.log('values converged: ', population[0]);
 		return population[0];
 	}
 	return false;
+}
+
+function populationMean(population) {
+	return population.reduce((mean, individual) => mean += individual.fitness / population.length, 0);
+}
+
+function populationDeviation(population, mean) {
+	const variance = population.map(individual => Math.pow(individual.fitness - mean, 2))
+		.reduce((variance, sample) => variance += sample / population.length, 0);
+	return Math.sqrt(variance);
 }
 
 function select(population, pairs) {
@@ -97,6 +116,11 @@ function select(population, pairs) {
 	}
 }
 
+function validate(individual, ceiling) {
+	individual = evaluateIndividual(individual);
+	return individual.weight <= ceiling;
+}
+
 function breed(candidates, chance, ceiling) {
 	for (let i = 0; i < candidates.length; i += 2) {
 		if (Math.random() < chance) {
@@ -106,12 +130,8 @@ function breed(candidates, chance, ceiling) {
 				firstChild = cross(candidates[i], candidates[i + 1], pivot);
 				secondChild = cross(candidates[i + 1], candidates[i], pivot);
 			} while (!validate(firstChild, ceiling) || !validate(secondChild, ceiling));
-			console.log(
-				candidates[i].chromossomes == secondChild.chromossomes,
-				candidates[i + 1].chromossomes == firstChild.chromossomes
-			)
-			candidates[i].chromossomes = evaluateIndividual(firstChild).chromossomes;
-			candidates[i + 1].chromossomes = evaluateIndividual(secondChild).chromossomes;
+			candidates[i].chromossomes = firstChild.chromossomes;
+			candidates[i + 1].chromossomes = secondChild.chromossomes;
 		}
 	}
 
@@ -125,10 +145,10 @@ function breed(candidates, chance, ceiling) {
 }
 
 function mutate(population, chance, capacity) {
-	console.log('mutating population');
 	population.forEach(individual => {
-		if (Math.random() < chance) {
-			mutateIndividual(individual);
+		const dice = Math.random();
+		if (dice < chance) {
+			individual.chromossomes = mutateIndividual(individual).chromossomes;
 		}
 	});
 }
@@ -136,28 +156,8 @@ function mutate(population, chance, capacity) {
 function mutateIndividual(individual, capacity) {
 	let mutant = JSON.parse(JSON.stringify(individual));
 	do {
-		const index = Math.floor(Math.random() * mutant.chromossomes.length - 1);
+		const index = Math.floor(Math.random() * mutant.chromossomes.length);
 		mutant.chromossomes[index].value = !mutant.chromossomes[index].value;
 	} while (validate(mutant, capacity));
 	return mutant;
 }
-
-function validate(individual, ceiling) {
-	individual = evaluateIndividual(individual);
-	return individual.weight <= ceiling;
-}
-
-const backpack = {
-	capacity: 15
-};
-
-const items = (function () {
-	let items = [];
-	for (let i = 0; i < 20; i++) {
-		items.push({
-			weight: Math.round(Math.random() * 15) + 1,
-			value: Math.round(Math.random() * 5) + 1
-		})
-	}
-	return items;
-})()
