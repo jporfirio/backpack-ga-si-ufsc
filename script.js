@@ -23,17 +23,17 @@ async function main() {
     var generations;
     var populationSize;
      
-    capacity = await question('Informe a capacidade da mochila: ');
-	size = await question('Informe a quantidade de itens: ');
-	deviation = await question('Informe o desvio padrão para função de convergência: ');
-	populationSize = await question('Informe o tamanho da população inicial: ');
-	generations = await question('Informe a quantidade de gerações: ');
+    capacity = await question('Backpack capacity: ');
+	size = await question('Quantity of items: ');
+	deviation = await question('Standard deviation for convergence function: ');
+	populationSize = await question('Population size: ');
+	generations = await question('Amount of generations: ');
     
     run(capacity, size, deviation, generations, populationSize);
 };
 
 
-main();
+
 
 function run(capacity, size, deviation, generations, populationSize) {
 	
@@ -264,3 +264,5 @@ function mutateIndividual(individual, capacity) {
 	} while (validate(mutant, capacity));
 	return mutant;
 }
+
+main();
