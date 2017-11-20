@@ -1,4 +1,5 @@
 
+var generation = 0;
 
 const readline = require('readline');
 
@@ -41,16 +42,31 @@ function run(capacity, size, deviation, generations, populationSize) {
 
     var initialPopulation = generate(generatItems(size), capacity, populationSize);
 
-	for (let i = 0; i < generations ; i++) {
-		var candidates;
+    console.log();
+    console.log("Generation " + generation);
+    initialPopulation.forEach(individual => {
+        var chromossome = ''
+        individual.chromossomes.forEach(item => {
+			chromossome += item.value ? '1' : '0';
+	    });
 		
+		console.log(chromossome);		
+	 });
+
+	for (let i = 0; i < generations; i++) {
+
+		var candidates;
 		if(i==0){
-			candidates = select(initialPopulation, 2);
+			candidates = select(initialPopulation, initialPopulation.length);
 		} else{
-			candidates = select(candidates, 2);
+			candidates = select(candidates, candidates.length);
+		}
+
+		if(test(candidates, capacity, deviation)){
+			break;
 		}
 		 
-		breed(candidates, breedingChance, capacity);
+		candidates = breed(candidates, breedingChance, capacity);
 		mutate(candidates, mutationChance, 15);		
 		evaluate(candidates);
         
@@ -68,18 +84,31 @@ function generatItems(quantity) {
 	return items;
 }
 
+function randomIntFromInterval(min,max) {
+    return Math.floor(Math.random()*(max-min+1)+min);
+}
+
 function generate(items, capacity, size) {
 	let population = [];
 	population.avgFitness = 0;
 	for (let i = 0; i < size; i++) {
 		let individual = {};
-		do {
+
 			individual.chromossomes = [];
 			individual.fitness = 0;
 			individual.weight = 0;
 			items.forEach((item, index) => {
+				
+				var value;
+				var rnd = randomIntFromInterval(0,1);	
+				if (rnd > 0.5) {
+					value = true;
+				} else {
+					value = false;
+				}
+
 				individual.chromossomes[index] = {
-					value: !!Math.round(Math.random()),
+					value: value,
 					item
 				};
 				if (individual.chromossomes[index].value) {
@@ -87,13 +116,14 @@ function generate(items, capacity, size) {
 					individual.weight += item.weight;
 				}
 			});
-		} while (individual.weight > capacity);
+		 
+	
 		population.push(individual);
 	}
 	return population;
 }
 
-var generation = 0;
+
 function evaluate(population) {
 
     generation++;
@@ -193,16 +223,19 @@ function breed(candidates, chance, ceiling) {
 		if (Math.random() < chance) {
 			let pivot, firstChild, secondChild;
 
-			do {
 				pivot = Math.floor(Math.random() * candidates[i].chromossomes.length);
 				firstChild = cross(candidates[i], candidates[i + 1], pivot);
 				secondChild = cross(candidates[i + 1], candidates[i], pivot);
-			} while (!validate(firstChild, ceiling) || !validate(secondChild, ceiling));
+			 
 
-			candidates[i].chromossomes = firstChild.chromossomes;
-			candidates[i + 1].chromossomes = secondChild.chromossomes;
+			candidates[i] = firstChild;
+			candidates[i + 1]  = secondChild;
 		}
 	}
+
+   return candidates;
+
+	 
 
 }
 
