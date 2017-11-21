@@ -67,7 +67,7 @@ function run(capacity, size, deviation, generations, populationSize) {
 		 
 		candidates = breed(candidates, breedingChance, capacity);
 		mutate(candidates, mutationChance, 15);		
-		evaluate(candidates);
+		evaluate(candidates, capacity);
 
 		if(generation==generations){
 			console.log();			
@@ -135,13 +135,13 @@ function generate(items, capacity, size) {
 }
 
 
-function evaluate(population) {
+function evaluate(population, capacity) {
 
     generation++;
 	
     let avgFitness = 0;
 	population.forEach(individual => {
-		individual = evaluateIndividual(individual);
+		individual = evaluateIndividual(individual, capacity);
 		avgFitness += individual.fitness / population.length;
 	});
 	if (avgFitness !== population.avgFitness) {
@@ -169,13 +169,19 @@ function evaluate(population) {
 	return population;
 }
 
-function evaluateIndividual(individual) {
+function evaluateIndividual(individual, capacity) {
+	let deduction = 1;
+	if(individual.weight>capacity){
+		deduction = 0.3;
+	}
+
 	individual.fitness = 0;
 	individual.weight = 0;
+
 	individual.chromossomes.forEach(gene => {
 		if (gene.value) {
 			individual.weight += gene.item.weight;
-			individual.fitness += gene.item.value;
+			individual.fitness += gene.item.value * deduction;
 		}
 	});
 	return individual;
