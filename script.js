@@ -24,10 +24,10 @@ async function main() {
     var populationSize;
      
     capacity = await question('Backpack capacity: ');
-	size = await question('Quantity of items: ');
+	size = await question('Items: ');
 	deviation = await question('Standard deviation for convergence function: ');
 	populationSize = await question('Population size: ');
-	generations = await question('Amount of generations: ');
+	generations = await question('Generations Amount : ');
     
     run(capacity, size, deviation, generations, populationSize);
 };
@@ -49,18 +49,17 @@ function run(capacity, size, deviation, generations, populationSize) {
         individual.chromossomes.forEach(item => {
 			chromossome += item.value ? '1' : '0';
 	    });
-		
-		console.log(chromossome);		
-	 });
 
+		console.log(chromossome);
+		
+	 });
+	
+	var candidates = select(initialPopulation, initialPopulation.length);
 	for (let i = 0; i < generations; i++) {
 
-		var candidates;
-		if(i==0){
-			candidates = select(initialPopulation, initialPopulation.length);
-		} else{
+		if(i>0){
 			candidates = select(candidates, candidates.length);
-		}
+		}  
 
 		if(test(candidates, capacity, deviation)){
 			break;
@@ -69,6 +68,18 @@ function run(capacity, size, deviation, generations, populationSize) {
 		candidates = breed(candidates, breedingChance, capacity);
 		mutate(candidates, mutationChance, 15);		
 		evaluate(candidates);
+
+		if(generation==generations){
+			console.log();			
+			console.log("===================");
+			console.log('End of generations');
+            const mean = populationMean(candidates);
+            const best  = bestSolution(candidates);
+			console.log('Population Mean: ' + mean);			
+
+			console.log('Best solution -> Fitness: ' + best.fitness + ' Weight: ' + best.weight);
+			console.log(best);
+		}
         
 	}
 }
@@ -147,7 +158,9 @@ function evaluate(population) {
 			chromossome += item.value ? '1' : '0';
 	    });
 		
-		console.log(chromossome);		
+		if(process.argv[2]!= undefined){
+			console.log(chromossome);		
+		}
 	 });
 
 	console.log('Average fitness: ', population.avgFitness);
@@ -174,7 +187,19 @@ function test(population, capacity, desiredDeviation) {
 	const proportionalDeviation = stdDeviation / mean;
 	if (proportionalDeviation < desiredDeviation) {
 		population.sort((a, b) => b.fitness - a.fitness);
-		console.log('values converged: ', population[0]);
+
+		console.log();
+		console.log('values converged in generation ', generation);
+		console.log();			
+		console.log("===================");
+		console.log('End of generations');
+        const best  = bestSolution(population);
+
+		console.log('Population Mean: ' + mean);		
+
+		console.log('Best solution -> Fitness: ' + best.fitness + ' Weight: ' + best.weight);
+		console.log(best);	
+
 		return population[0];
 	}
 	return false;
@@ -182,6 +207,11 @@ function test(population, capacity, desiredDeviation) {
 
 function populationMean(population) {
 	return population.reduce((mean, individual) => mean += individual.fitness / population.length, 0);
+}
+
+function bestSolution(population) {
+    const max = population.reduce((prev, current) => (prev.fitness > current.fitness) ? prev : current);
+	return max;
 }
 
 function populationDeviation(population, mean) {
